@@ -1,0 +1,27 @@
+# Environments
+.venv/
+env/
+venv/
+ENV/
+.env
+
+# ADK and temporary files
+.adk/
+deploy_output.log
+deploy_adk_output.log
+staging_deploy/
+deploy_src/
+sharechat_finance_agent_tmp*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Large data files
+*.csv
+*.jsonl
+
+# OS files
+.DS_Store

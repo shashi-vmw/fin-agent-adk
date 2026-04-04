@@ -1,0 +1,9 @@
+{
+  "timestamp": "The exact date and time when the resource usage occurred. Used for time-series analysis and identifying peak usage periods.",
+  "region": "The geographic data center region (e.g., APAC, EMEA, AMER, LATAM). Critical for regional cost allocation and performance monitoring.",
+  "user_id": "Unique identifier for the internal user or service account responsible for the cost. Used for department-level chargebacks.",
+  "usage_type": "The category of cloud resource consumed (e.g., compute_engine, storage, data_transfer). Essential for identifying infrastructure trends.",
+  "amount": "The raw quantity of usage in the resource's native units (e.g., GB, vCPU-hours).",
+  "currency": "The local currency in which the usage was originally billed. Important for tracking exchange rate fluctuations.",
+  "cost_usd": "The normalized cost in US Dollars. This is the primary field for global financial reporting and budget comparison."
+}
