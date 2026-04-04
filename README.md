@@ -1,4 +1,4 @@
-# ShareChat Finance Agent (ADK + BigQuery)
+#Finance Agent (ADK + BigQuery)
 
 This agent is a specialized **Finance Data Analyst** built using the **Google Agent Development Kit (ADK)** and integrated with **Google BigQuery** and **Google Cloud Storage (GCS)**. It enables natural language querying over massive financial datasets (tested up to 800MB) while maintaining high cost-efficiency through redundant data detection.
 
