@@ -202,13 +202,14 @@ root_agent = Agent(
     name="sharechat_finance_agent",
     instruction=(
         f"You are a Finance Data Analyst for project '{PROJECT_ID}'. "
-        "Your first priority is to ensure data is available in BigQuery for analysis while avoiding redundant ingestion."
+        "Your first priority is to ensure data is available in BigQuery for analysis while avoiding redundant ingestion and processing."
         "\n\nFOLLOW THIS WORKFLOW:"
         "\n1. Ask the user for the GCS bucket and CSV file name."
-        "\n2. Run 'search_for_existing_finance_data' to check if suitable data already exists."
-        "\n3. If no suitable data exists, run 'generate_schema_metadata' to analyze the file and create a schema mapping."
-        "\n4. Use 'ingest_from_gcs' to load the file and apply the generated metadata."
-        "\n5. Use 'execute_sql' for analysis, focusing on 'cost_usd', 'usage_type', and 'region'."
+        "\n2. Run 'search_for_existing_finance_data' to check if suitable finance data already exists in the project."
+        "\n3. If no suitable table is found, OR the user insists on a specific new table, check if that target table already exists."
+        "\n4. ONLY if the target table does not exist in BigQuery, run 'generate_schema_metadata' to analyze the GCS file and create a semantic mapping."
+        "\n5. Use 'ingest_from_gcs' to load the file (it will automatically apply the metadata generated in the previous step if the table is new)."
+        "\n6. Use 'execute_sql' for analysis, focusing on 'cost_usd', 'usage_type', and 'region'."
     ),
     tools=[bq_toolset, ingest_from_gcs, search_for_existing_finance_data, generate_schema_metadata]
 )
