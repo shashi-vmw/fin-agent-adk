@@ -136,10 +136,66 @@ def ingest_from_gcs(bucket_name: str, file_name: str, dataset_id: str, table_id:
         "full_path": f"{PROJECT_ID}.{dataset_id}.{table_id}"
     }
 
+def generate_schema_metadata(bucket_name: str, file_name: str):
+    """
+    Reads a sample of the CSV from GCS and generates semantic column descriptions
+    using a language model. This is used to enrich the BigQuery schema.
+    """
+    from google.cloud import storage
+    import io
+    import pandas as pd
+    
+    storage_client = storage.Client(credentials=credentials, project=PROJECT_ID)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+    
+    # Read first 10KB to get header and some rows
+    content = blob.download_as_bytes(start=0, end=10240).decode('utf-8')
+    df = pd.read_csv(io.StringIO(content), nrows=5)
+    
+    sample_data = df.to_string()
+    columns = df.columns.tolist()
+    
+    # Use the root_agent's model to generate descriptions
+    # We'll use a simple prompt for the generation
+    prompt = (
+        f"Analyze these CSV columns and sample data:\n\n"
+        f"Columns: {columns}\n"
+        f"Sample Data:\n{sample_data}\n\n"
+        "Generate a JSON object where keys are column names and values are "
+        "concise, professional descriptions of what the data represents in a "
+        "finance context. Output ONLY the JSON."
+    )
+    
+    # Since we are inside a tool, we can use the agent's model if we had access, 
+    # but more reliably we use a fresh GenerativeModel call.
+    from google.generativeai import GenerativeModel
+    model = GenerativeModel("gemini-2.0-flash")
+    response = model.generate_content(prompt)
+    
+    try:
+        # Clean up response in case it has markdown blocks
+        clean_json = response.text.replace('```json', '').replace('```', '').strip()
+        metadata = json.loads(clean_json)
+        
+        # Save locally for the ingestion tool to pick up
+        meta_path = os.path.join(os.path.dirname(__file__), 'schema_metadata.json')
+        with open(meta_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+            
+        return {
+            "status": "success",
+            "message": f"Generated metadata for {len(columns)} columns.",
+            "metadata": metadata
+        }
+    except Exception as e:
+        return {"error": f"Failed to parse or save metadata: {str(e)}", "raw_response": response.text}
+
 # MCP Wrapper for ADK/External use
 mcp = FastMCP("Finance Ingestion Tools")
 mcp.add_tool(search_for_existing_finance_data)
 mcp.add_tool(ingest_from_gcs)
+mcp.add_tool(generate_schema_metadata)
 
 # 4. Define the ADK Agent
 root_agent = Agent(
@@ -148,14 +204,13 @@ root_agent = Agent(
         f"You are a Finance Data Analyst for project '{PROJECT_ID}'. "
         "Your first priority is to ensure data is available in BigQuery for analysis while avoiding redundant ingestion."
         "\n\nFOLLOW THIS WORKFLOW:"
-        "\n1. Ask the user for the GCS bucket and CSV file name if they haven't provided it yet."
-        "\n2. Once the CSV details are provided, immediately run 'search_for_existing_finance_data' "
-        "to check if a table with a similar schema already exists in the project."
-        "\n3. If a matching table is found, inform the user and ask if they would like to use the existing data instead of ingesting the CSV again."
-        "\n4. If no suitable data exists or the user wants a fresh load, use 'ingest_from_gcs' to load the file."
+        "\n1. Ask the user for the GCS bucket and CSV file name."
+        "\n2. Run 'search_for_existing_finance_data' to check if suitable data already exists."
+        "\n3. If no suitable data exists, run 'generate_schema_metadata' to analyze the file and create a schema mapping."
+        "\n4. Use 'ingest_from_gcs' to load the file and apply the generated metadata."
         "\n5. Use 'execute_sql' for analysis, focusing on 'cost_usd', 'usage_type', and 'region'."
     ),
-    tools=[bq_toolset, ingest_from_gcs, search_for_existing_finance_data]
+    tools=[bq_toolset, ingest_from_gcs, search_for_existing_finance_data, generate_schema_metadata]
 )
 
 if __name__ == "__main__":
