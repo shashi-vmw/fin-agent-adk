@@ -11,9 +11,7 @@ from google.api_core.exceptions import NotFound, Conflict
 PROJECT_ID = "shashirr01"
 BUCKET_NAME = "shashi148"
 FINANCE_DATASET_ID = "sharechat_finance_data"
-# Using gemini-1.5-pro as it is the most stable high-end model currently available
-# Note: "gemini-3.1-pro-preview" is not a valid model ID yet.
-MODEL_NAME = "gemini-1.5-pro"
+MODEL_NAME = "gemini-3.1-pro-preview"
 credentials, _ = google.auth.default()
 
 # 2. BigQuery Toolset (ADK Connector)
